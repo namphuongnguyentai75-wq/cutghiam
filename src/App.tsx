@@ -46,28 +46,43 @@ function App() {
     setChunks(newChunks);
   }, []);
 
-  const handleFileSelect = (selectedFile: File) => {
+  const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setResults([]);
     setError(null);
     setAudioDuration(null);
     setChunks([]);
 
-    // Get audio duration using a hidden audio element
-    const objectUrl = URL.createObjectURL(selectedFile);
-    const audio = new Audio(objectUrl);
-    
-    audio.onloadedmetadata = () => {
-      URL.revokeObjectURL(objectUrl);
-      const duration = audio.duration;
-      setAudioDuration(duration);
-      calculateChunks(duration, durationMinutes, selectedFile.name);
-    };
+    try {
+      // Import parseBlob directly in the function to avoid top-level issues if any
+      const musicMetadata = await import('music-metadata');
+      const metadata = await musicMetadata.parseBlob(selectedFile);
+      const duration = metadata.format.duration;
+      
+      if (duration) {
+        setAudioDuration(duration);
+        calculateChunks(duration, durationMinutes, selectedFile.name);
+      } else {
+        throw new Error("Không thể trích xuất thời lượng file.");
+      }
+    } catch (err: any) {
+      console.error('Metadata parsing error:', err);
+      // Fallback to HTML Audio if music-metadata fails (or for weird formats)
+      const objectUrl = URL.createObjectURL(selectedFile);
+      const audio = new Audio(objectUrl);
+      
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(objectUrl);
+        const duration = audio.duration;
+        setAudioDuration(duration);
+        calculateChunks(duration, durationMinutes, selectedFile.name);
+      };
 
-    audio.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      setError("Không thể đọc metadata của file âm thanh này.");
-    };
+      audio.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        setError("Không thể đọc metadata của file âm thanh này. File có thể bị lỗi, hoặc định dạng quá lớn/không được hỗ trợ.");
+      };
+    }
   };
 
   const handleDurationChange = (minutes: number) => {
