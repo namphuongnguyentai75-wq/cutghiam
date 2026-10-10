@@ -14,11 +14,17 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, audioDuration }) => {
+  const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
+        if (file.size > MAX_FILE_SIZE) {
+          alert('Dung lượng file quá lớn. Ứng dụng xử lý trên trình duyệt nên chỉ hỗ trợ tối đa 2GB.');
+          return;
+        }
         if (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|m4a|aac|ogg)$/i)) {
           onFileSelect(file);
         } else {
@@ -31,7 +37,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFi
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onFileSelect(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.size > MAX_FILE_SIZE) {
+        alert('Dung lượng file quá lớn. Ứng dụng xử lý trên trình duyệt nên chỉ hỗ trợ tối đa 2GB.');
+        return;
+      }
+      onFileSelect(file);
     }
   };
 
